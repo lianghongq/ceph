@@ -8,6 +8,7 @@
 #include "common/errno.h"
 #include "common/Timer.h"
 #include "common/safe_io.h"
+#include "common/numa.h"
 #include "common/TracepointProvider.h"
 #include "include/compat.h"
 #include "include/str_list.h"
@@ -252,6 +253,26 @@ int main(int argc, const char **argv)
 			 CODE_ENVIRONMENT_DAEMON,
 			 flags, "rgw_data", false);
 
+  int numa_node = g_conf().get_val<int64_t>("rgw_numa_node");
+  size_t numa_cpu_set_size = 0;
+  cpu_set_t numa_cpu_set;
+
+  if( numa_node >= 0 ){
+    int r = get_numa_node_cpu_set(numa_node,&numa_cpu_set_size,&numa_cpu_set);
+    if(r < 0){
+        dout(1) << __func__ << " unable to determine numa node " << numa_node
+         << " CPUs" << dendl;
+              numa_node = -1;
+    } else {
+        r = set_cpu_affinity_all_threads(numa_cpu_set_size,&numa_cpu_set);
+        if( r < 0 ){
+            derr<<__func__<<"failed to set numa affinity: " << cpp_strerror(r)
+                <<dendl;
+        }
+    }
+  } else {
+    dout(1) << __func__ << "not setting numa affinity" << dendl;
+  }
   // maintain existing region root pool for new multisite objects
   if (!g_conf()->rgw_region_root_pool.empty()) {
     const char *root_pool = g_conf()->rgw_region_root_pool.c_str();
@@ -298,7 +319,7 @@ int main(int argc, const char **argv)
   rgw_init_resolver();
   rgw::curl::setup_curl(fe_map);
   rgw_http_client_init(g_ceph_context);
-  
+
 #if defined(WITH_RADOSGW_FCGI_FRONTEND)
   FCGX_Init();
 #endif
@@ -417,7 +438,7 @@ int main(int argc, const char **argv)
     admin_resource->register_resource("usage", new RGWRESTMgr_Usage);
     admin_resource->register_resource("user", new RGWRESTMgr_User);
     admin_resource->register_resource("bucket", new RGWRESTMgr_Bucket);
-  
+
     /*Registering resource for /admin/metadata */
     admin_resource->register_resource("metadata", new RGWRESTMgr_Metadata);
     admin_resource->register_resource("log", new RGWRESTMgr_Log);

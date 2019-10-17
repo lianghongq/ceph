@@ -5782,6 +5782,11 @@ std::vector<Option> get_rgw_options() {
         "This is Needed for virtual hosting of buckets to work properly, unless configured "
         "via zonegroup configuration."),
 
+    Option("rgw_numa_node", Option::TYPE_INT, Option::LEVEL_ADVANCED)
+    .set_default(-1)
+    .set_flag(Option::FLAG_STARTUP)
+    .set_description("set affinity to a numa node (-1 for none)"),
+
     Option("rgw_dns_s3website_name", Option::TYPE_STR, Option::LEVEL_ADVANCED)
     .set_default("")
     .set_description("The host name that RGW uses for static websites (S3)")
@@ -6894,7 +6899,7 @@ std::vector<Option> get_rgw_options() {
     .set_description("Number of seconds the timeout on the reshard locks (bucket reshard lock and reshard log lock) are set to. As a reshard proceeds these locks can be renewed/extended. If too short, reshards cannot complete and will fail, causing a future reshard attempt. If too long a hung or crashed reshard attempt will keep the bucket locked for an extended period, not allowing RGW to detect the failed reshard attempt and recover.")
     .add_tag("performance")
     .add_service("rgw"),
-    
+
     Option("rgw_reshard_batch_size", Option::TYPE_UINT, Option::LEVEL_ADVANCED)
     .set_default(64)
     .set_min(8)
