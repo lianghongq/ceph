@@ -425,6 +425,7 @@ TEST(Queue, SpawnAsyncRequest)
   });
 
   context.poll();
+  context.poll();
   EXPECT_TRUE(context.stopped());
 }
 
